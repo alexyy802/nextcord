@@ -14,7 +14,6 @@ docs/crowdin.py
 *.jpg
 *.flac
 *.mo
-pyproject.toml
 dist/
 .history/
 .idea/
@@ -24,3 +23,7 @@ __pycache__
 
 # Exception for images in assets folder
 !assets/*
+build/
+
+# locks don't belong in libraries
+poetry.lock

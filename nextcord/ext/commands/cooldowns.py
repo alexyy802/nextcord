@@ -1,79 +1,60 @@
-"""
-The MIT License (MIT)
-
-Copyright (c) 2015-present Rapptz
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
+# SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
-
-from typing import Any, Callable, Deque, Dict, Optional, Type, TypeVar, TYPE_CHECKING
-from nextcord.enums import Enum
-import time
 import asyncio
+import time
 from collections import deque
+from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, Optional, TypeVar
+
+from nextcord.enums import IntEnum
 
 from ...abc import PrivateChannel
 from .errors import MaxConcurrencyReached
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
+
     from ...message import Message
 
 __all__ = (
-    'BucketType',
-    'Cooldown',
-    'CooldownMapping',
-    'DynamicCooldownMapping',
-    'MaxConcurrency',
+    "BucketType",
+    "Cooldown",
+    "CooldownMapping",
+    "DynamicCooldownMapping",
+    "MaxConcurrency",
 )
 
-C = TypeVar('C', bound='CooldownMapping')
-MC = TypeVar('MC', bound='MaxConcurrency')
+C = TypeVar("C", bound="CooldownMapping")
 
-class BucketType(Enum):
-    default  = 0
-    user     = 1
-    guild    = 2
-    channel  = 3
-    member   = 4
+
+class BucketType(IntEnum):
+    default = 0
+    user = 1
+    guild = 2
+    channel = 3
+    member = 4
     category = 5
-    role     = 6
+    role = 6
 
     def get_key(self, msg: Message) -> Any:
         if self is BucketType.user:
             return msg.author.id
-        elif self is BucketType.guild:
+        if self is BucketType.guild:
             return (msg.guild or msg.author).id
-        elif self is BucketType.channel:
+        if self is BucketType.channel:
             return msg.channel.id
-        elif self is BucketType.member:
+        if self is BucketType.member:
             return ((msg.guild and msg.guild.id), msg.author.id)
-        elif self is BucketType.category:
+        if self is BucketType.category:
             return (msg.channel.category or msg.channel).id  # type: ignore
-        elif self is BucketType.role:
+        if self is BucketType.role:
             # we return the channel id of a private-channel as there are only roles in guilds
             # and that yields the same result as for a guild with only the @everyone role
             # NOTE: PrivateChannel doesn't actually have an id attribute but we assume we are
             # recieving a DMChannel or GroupChannel which inherit from PrivateChannel and do
             return (msg.channel if isinstance(msg.channel, PrivateChannel) else msg.author.top_role).id  # type: ignore
+        return None
 
     def __call__(self, msg: Message) -> Any:
         return self.get_key(msg)
@@ -83,14 +64,14 @@ class Cooldown:
     """Represents a cooldown for a command.
 
     Attributes
-    -----------
+    ----------
     rate: :class:`int`
         The total number of tokens available per :attr:`per` seconds.
     per: :class:`float`
         The length of the cooldown period in seconds.
     """
 
-    __slots__ = ('rate', 'per', '_window', '_tokens', '_last')
+    __slots__ = ("rate", "per", "_window", "_tokens", "_last")
 
     def __init__(self, rate: float, per: float) -> None:
         self.rate: int = int(rate)
@@ -103,13 +84,13 @@ class Cooldown:
         """Returns the number of available tokens before rate limiting is applied.
 
         Parameters
-        ------------
+        ----------
         current: Optional[:class:`float`]
             The time in seconds since Unix epoch to calculate tokens at.
             If not supplied then :func:`time.time()` is used.
 
         Returns
-        --------
+        -------
         :class:`int`
             The number of tokens available before the cooldown is to be applied.
         """
@@ -126,7 +107,7 @@ class Cooldown:
         """Returns the time in seconds until the cooldown will be reset.
 
         Parameters
-        -------------
+        ----------
         current: Optional[:class:`float`]
             The current time in seconds since Unix epoch.
             If not supplied, then :func:`time.time()` is used.
@@ -148,7 +129,7 @@ class Cooldown:
         """Updates the cooldown rate limit.
 
         Parameters
-        -------------
+        ----------
         current: Optional[:class:`float`]
             The time in seconds since Unix epoch to update the rate limit at.
             If not supplied, then :func:`time.time()` is used.
@@ -173,6 +154,7 @@ class Cooldown:
 
         # we're not so decrement our tokens
         self._tokens -= 1
+        return None
 
     def reset(self) -> None:
         """Reset the cooldown to its initial state."""
@@ -183,14 +165,15 @@ class Cooldown:
         """Creates a copy of this cooldown.
 
         Returns
-        --------
+        -------
         :class:`Cooldown`
             A new instance of this cooldown.
         """
         return Cooldown(self.rate, self.per)
 
     def __repr__(self) -> str:
-        return f'<Cooldown rate: {self.rate} per: {self.per} window: {self._window} tokens: {self._tokens}>'
+        return f"<Cooldown rate: {self.rate} per: {self.per} window: {self._window} tokens: {self._tokens}>"
+
 
 class CooldownMapping:
     def __init__(
@@ -199,7 +182,7 @@ class CooldownMapping:
         type: Callable[[Message], Any],
     ) -> None:
         if not callable(type):
-            raise TypeError('Cooldown type must be a BucketType or callable')
+            raise TypeError("Cooldown type must be a BucketType or callable")
 
         self._cache: Dict[Any, Cooldown] = {}
         self._cooldown: Optional[Cooldown] = original
@@ -219,7 +202,7 @@ class CooldownMapping:
         return self._type
 
     @classmethod
-    def from_cooldown(cls: Type[C], rate, per, type) -> C:
+    def from_cooldown(cls, rate: float, per, type) -> Self:
         return cls(Cooldown(rate, per), type)
 
     def _bucket_key(self, msg: Message) -> Any:
@@ -234,34 +217,37 @@ class CooldownMapping:
         for k in dead_keys:
             del self._cache[k]
 
+    def _is_default(self) -> bool:
+        # This method can be overridden in subclasses
+        return self._type is BucketType.default
+
     def create_bucket(self, message: Message) -> Cooldown:
         return self._cooldown.copy()  # type: ignore
 
     def get_bucket(self, message: Message, current: Optional[float] = None) -> Cooldown:
-        if self._type is BucketType.default:
+        if self._is_default():
             return self._cooldown  # type: ignore
 
         self._verify_cache_integrity(current)
         key = self._bucket_key(message)
         if key not in self._cache:
             bucket = self.create_bucket(message)
-            if bucket is not None:
-                self._cache[key] = bucket
+            self._cache[key] = bucket
         else:
             bucket = self._cache[key]
 
         return bucket
 
-    def update_rate_limit(self, message: Message, current: Optional[float] = None) -> Optional[float]:
+    def update_rate_limit(
+        self, message: Message, current: Optional[float] = None
+    ) -> Optional[float]:
         bucket = self.get_bucket(message, current)
         return bucket.update_rate_limit(current)
 
-class DynamicCooldownMapping(CooldownMapping):
 
+class DynamicCooldownMapping(CooldownMapping):
     def __init__(
-        self,
-        factory: Callable[[Message], Cooldown],
-        type: Callable[[Message], Any]
+        self, factory: Callable[[Message], Cooldown], type: Callable[[Message], Any]
     ) -> None:
         super().__init__(None, type)
         self._factory: Callable[[Message], Cooldown] = factory
@@ -275,8 +261,13 @@ class DynamicCooldownMapping(CooldownMapping):
     def valid(self) -> bool:
         return True
 
+    def _is_default(self) -> bool:
+        # In dynamic mappings even default bucket types may have custom behavior
+        return False
+
     def create_bucket(self, message: Message) -> Cooldown:
         return self._factory(message)
+
 
 class _Semaphore:
     """This class is a version of a semaphore.
@@ -291,7 +282,7 @@ class _Semaphore:
     overkill for what is basically a counter.
     """
 
-    __slots__ = ('value', 'loop', '_waiters')
+    __slots__ = ("value", "loop", "_waiters")
 
     def __init__(self, number: int) -> None:
         self.value: int = number
@@ -299,7 +290,7 @@ class _Semaphore:
         self._waiters: Deque[asyncio.Future] = deque()
 
     def __repr__(self) -> str:
-        return f'<_Semaphore value={self.value} waiters={len(self._waiters)}>'
+        return f"<_Semaphore value={self.value} waiters={len(self._waiters)}>"
 
     def locked(self) -> bool:
         return self.value == 0
@@ -337,8 +328,9 @@ class _Semaphore:
         self.value += 1
         self.wake_up()
 
+
 class MaxConcurrency:
-    __slots__ = ('number', 'per', 'wait', '_mapping')
+    __slots__ = ("number", "per", "wait", "_mapping")
 
     def __init__(self, number: int, *, per: BucketType, wait: bool) -> None:
         self._mapping: Dict[Any, _Semaphore] = {}
@@ -347,16 +339,16 @@ class MaxConcurrency:
         self.wait: bool = wait
 
         if number <= 0:
-            raise ValueError('max_concurrency \'number\' cannot be less than 1')
+            raise ValueError("max_concurrency 'number' cannot be less than 1")
 
         if not isinstance(per, BucketType):
-            raise TypeError(f'max_concurrency \'per\' must be of type BucketType not {type(per)!r}')
+            raise TypeError(f"max_concurrency 'per' must be of type BucketType not {type(per)!r}")
 
-    def copy(self: MC) -> MC:
+    def copy(self) -> Self:
         return self.__class__(self.number, per=self.per, wait=self.wait)
 
     def __repr__(self) -> str:
-        return f'<MaxConcurrency per={self.per!r} number={self.number} wait={self.wait}>'
+        return f"<MaxConcurrency per={self.per!r} number={self.number} wait={self.wait}>"
 
     def get_key(self, message: Message) -> Any:
         return self.per.get_key(message)
